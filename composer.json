@@ -1,0 +1,6 @@
+{
+	"name":    "jedmiry/bi",
+	"license": "MIT",
+
+	"autoload": { "files": ["src/Bi.php"] }
+}
