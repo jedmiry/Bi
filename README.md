@@ -1,6 +1,46 @@
-# Установка через Composer
+# Примеры
 
-## composer.json
+```php
+<?php
+
+require_once '../vendor/autoload.php';
+
+// Определяем фильтр "ошибки"
+Bi::error(function () {
+    echo 'Page not found!';
+});
+
+// Добавление фильтра "до"
+Bi::before(function () {
+    echo 'Before - ';
+});
+
+// Добавление фильтра "после"
+Bi::after(function () {
+    echo ' - After';
+});
+
+// Добавляем маршрут
+Bi::get('/', function () {
+    // Генерация ссылки
+    echo '<a href="' . Bi::generate('post', ['id' => 666]) . '">post</a>'; // /post/666
+}, 'index');
+
+// Добавляем маршрут
+Bi::get('/post/@id:[0-9]+', function ($id) {
+    echo "post: {$id};";
+}, 'post');
+
+// Диспетчеризация
+Bi::dispatch();
+```
+
+# Установка
+
+## Через Composer
+
+В файл `composer.json` записываем:
+
 ```json
 {
     "require": {
@@ -9,7 +49,7 @@
 }
 ```
 
-## index.php
+И запускаем Composer: `composer install`. После, подключаем автозагрузчик в `index.php`:
 
 ```php
 require_once '../vendor/autoload.php';
@@ -17,7 +57,9 @@ require_once '../vendor/autoload.php';
 
 # Настройки сервера
 
-## .htaccess
+## Apache
+
+В файл `.htaccess` записываем:
 
 ```apacheconf
 AddDefaultCharset UTF-8
@@ -34,76 +76,4 @@ AddDefaultCharset UTF-8
 <IfModule !mod_rewrite.c>
     ErrorDocument 404 index.php
 </IfModule>
-```
-
-# Примеры
-
-```php
-// Диспетчеризация
-Bi::dispatch(['/' => function () {
-    echo 'Hello, World!';
-}]);
-```
-
-## Методы
-```php
-Bi::get('/', function () {
-    echo 'Hello, World!';
-});
-
-Bi::dispatch();
-```
-
-## Регулярные выражения
-
-Позаимствовано у [flight](https://github.com/mikecao/flight).
-
-```php
-Bi::get('/post/@id:[0-9]+', function ($id) {
-    echo "post: {$id}";
-});
-
-Bi::get('/user/@id:[0-9]+(/@action:update|delete)', function ($id, $action = 'update') {
-    echo "user: {$id}; (action: {$action})";
-});
-
-Bi::dispatch();
-```
-
-## Генерация ссылок основываясь на названных маршрутах
-
-Позаимствовано у [slim](https://github.com/codeguy/slim).
-
-```php
-Bi::get('/post/@id:[0-9]+', function ($id) {
-    echo "post: {$id}";
-}, 'post');
-
-echo Bi::generate('post', ['id' => 666]); // /post/666
-```
-
-## Фильтры
-```php
-// Добавление фильтра "до"
-Bi::before(function () {
-    echo 'Before - ';
-});
-
-// Добавление фильтра "после"
-Bi::after(function () {
-    echo ' - After';
-});
-
-// Добавление фильтра "ошибки"
-Bi::error(function () {
-    echo 'Page not found';
-});
-
-// Добавление маршрута
-Bi::get('/', function () {
-    echo 'Hello, World!';
-});
-
-// Диспетчеризация
-Bi::dispatch();
 ```
