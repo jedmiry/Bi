@@ -1,38 +1,40 @@
-# Примеры
-
 ```php
 <?php
 
 require_once '../vendor/autoload.php';
 
-// Определяем фильтр "ошибки"
-Bi::error(function () {
-    echo 'Page not found!';
-});
+// Диспетчеризация
+Bi::dispatch([
+    '/' => function () {
+        echo 'Hello, World!';
+    }
+]);
+```
 
-// Добавление фильтра "до"
-Bi::before(function () {
-    echo 'Before - ';
-});
+```php
+// Добавление маршрута
+Bi::bind($method, $pattern, $callable, $name = null);
 
-// Добавление фильтра "после"
-Bi::after(function () {
-    echo ' - After';
-});
+// Добавление маршрута для GET-запроса
+Bi::get($pattern, $callable, $name = null);
 
-// Добавляем маршрут
-Bi::get('/', function () {
-    // Генерация ссылки
-    echo '<a href="' . Bi::generate('post', ['id' => 666]) . '">post</a>'; // /post/666
-}, 'index');
+// Добавление маршрута для POST-запроса
+Bi::post($pattern, $callable, $name = null);
 
-// Добавляем маршрут
-Bi::get('/post/@id:[0-9]+', function ($id) {
-    echo "post: {$id};";
-}, 'post');
+// Добавление маршрутов с префиксом к шаблону
+Bi::prefix($prefix, Closure $callable);
+
+// Определение обработчика ошибок
+Bi::error($callable);
+
+// Вызов обработчика ошибок
+Bi::alert();
+
+// Получение сгенерированной ссылки основываясь на названном маршруте
+Bi::generate($name, array $params = []);
 
 // Диспетчеризация
-Bi::dispatch();
+Bi::dispatch(array $routes = []);
 ```
 
 # Установка
@@ -49,7 +51,7 @@ Bi::dispatch();
 }
 ```
 
-И запускаем Composer: `composer install`. После, подключаем автозагрузчик в `index.php`:
+Запускаем Composer: `composer install`. Подключаем автозагрузчик, например, в `index.php`:
 
 ```php
 require_once '../vendor/autoload.php';
