@@ -1,6 +1,6 @@
 {
-	"name":    "jedmiry/bi",
-	"license": "MIT",
+    "name":    "jedmiry/bi",
+    "license": "MIT",
 
-	"autoload": { "files": ["src/Bi.php"] }
+    "autoload": { "files": ["src/Bi.php"] }
 }

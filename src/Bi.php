@@ -19,6 +19,13 @@ class Bi
     ];
 
     /**
+     * Названые мршруты
+     *
+     * @var array
+     */
+    private static $namedRoutes = [];
+
+    /**
      * Текущее пространство маршрутов
      *
      * @var string
@@ -47,9 +54,14 @@ class Bi
      * @param string  $pattern
      * @param Closure $callable
      */
-    public static function bind($method, $pattern, Closure $callable)
+    public static function bind($method, $pattern, Closure $callable, $name = null)
     {
-        static::$routes[$method][static::$namespace . $pattern] = $callable;
+        self::$routes[$method][self::$namespace . $pattern] = $callable;
+
+        if ($name)
+        {
+            self::$namedRoutes[$name] = $pattern;
+        }
     }
 
     /**
@@ -58,9 +70,9 @@ class Bi
      * @param string  $pattern
      * @param Closure $callable
      */
-    public static function get($pattern, Closure $callable)
+    public static function get($pattern, Closure $callable, $name = null)
     {
-        static::bind('GET', $pattern, $callable);
+        self::bind('GET', $pattern, $callable, $name);
     }
 
     /**
@@ -69,9 +81,9 @@ class Bi
      * @param string  $pattern
      * @param Closure $callable
      */
-    public static function post($pattern, Closure $callable)
+    public static function post($pattern, Closure $callable, $name = null)
     {
-        static::bind('POST', $pattern, $callable);
+        self::bind('POST', $pattern, $callable, $name);
     }
 
     /**
@@ -83,16 +95,16 @@ class Bi
     public static function group($namespace, Closure $callable)
     {
         // Сохранение старого пространства маршрутов
-        $previous = static::$namespace;
+        $previous = self::$namespace;
 
         // Добавление нового
-        static::$namespace .= $namespace;
+        self::$namespace .= $namespace;
 
         // Добавление маршрутов
         $callable();
 
         // Возврат к предыдушему пространству
-        static::$namespace = $previous;
+        self::$namespace = $previous;
     }
 
     /**
@@ -103,7 +115,7 @@ class Bi
      */
     public static function filter($key, Closure $callable)
     {
-        static::$filters[$key][] = $callable;
+        self::$filters[$key][] = $callable;
     }
 
     /**
@@ -113,7 +125,7 @@ class Bi
      */
     public static function before(Closure $callable)
     {
-        static::filter('before', $callable);
+        self::filter('before', $callable);
     }
 
     /**
@@ -123,7 +135,7 @@ class Bi
      */
     public static function after(Closure $callable)
     {
-        static::filter('after', $callable);
+        self::filter('after', $callable);
     }
 
     /**
@@ -133,7 +145,37 @@ class Bi
      */
     public static function error(Closure $callable)
     {
-        static::filter('error', $callable);
+        self::filter('error', $callable);
+    }
+
+    /**
+     * Возвращение сгенерированной ссылки основываясь на названном маршруте
+     *
+     * @param string $name
+     * @param array  $params
+     *
+     * @return string
+     */
+    public static function generate($name, array $params = [])
+    {
+        if (!array_key_exists($name, self::$namedRoutes))
+        {
+            throw new RuntimeException(sprintf('Named route not found for name: %s', $name));
+        }
+
+        $search = [];
+
+        // Готовим регулярные выражения для подставления параметров
+        foreach ($params as $key => $value)
+        {
+            $search[] = '~@' . preg_quote($key, '~') . '(:([^/\(\)]*))\+?(?!\w)~';
+        }
+
+        // Подставляем параметры
+        $pattern = preg_replace($search, $params, self::$namedRoutes[$name]);
+
+        //Remove remnants of unpopulated, trailing optional pattern segments, escaped special characters
+        return preg_replace('#\(/?@.+\)|\(|\)|\\\\#', '', $pattern);
     }
 
     /**
@@ -145,25 +187,57 @@ class Bi
         $uri    = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 
         // Подбор маршрутов с подходящим методом запроса и объединение маршрутов
-        $routes = array_merge(static::$routes[$method], $routes);
+        $routes = array_merge(self::$routes[$method], $routes);
 
         // Поиск статичного маршрута
         if (array_key_exists($uri, $routes))
         {
-            return static::call($routes[$uri]);
+            return self::call($routes[$uri]);
         }
 
         // Поиск динамичного маршрута
         foreach ($routes as $pattern => $callable)
         {
+            // Ключи в шаблоне
+            $keys = [];
+
+            // Плюшки
+            $pattern = str_replace(array(')','*'), array(')?','.*?'), $pattern);
+
+            // Заменяем параметры на регулярные выражения
+            $pattern = preg_replace_callback('#@([\w]+)(:([^/\(\)]*))?#', function ($matches) use (&$keys)
+            {
+                $keys[] = $matches[1];
+
+                if (isset($matches[3]))
+                {
+                    return "(?P<{$matches[1]}>{$matches[3]})";
+                }
+
+                return "(?P<{$matches[1]}>[^/\?]+)";
+            }, $pattern);
+
+            // Проверяем
             if (preg_match("~^{$pattern}$~", $uri, $matches))
             {
-                return static::call($callable, array_slice($matches, 1));
+                $params = [];
+
+                // Заносим параметры в массив
+                foreach ($keys as $key)
+                {
+                    if (array_key_exists($key, $matches))
+                    {
+                        $params[$key] = urldecode($matches[$key]);
+                    }
+                }
+
+                // Вызываем действие
+                return self::call($callable, $params);
             }
         }
 
         // 404
-        static::alert();
+        self::alert();
     }
 
     /**
@@ -174,14 +248,14 @@ class Bi
      */
     private static function call(Closure $callable, array $arguments = [])
     {
-        foreach (static::$filters['before'] as $before)
+        foreach (self::$filters['before'] as $before)
         {
             $before();
         }
 
         call_user_func_array($callable, $arguments);
 
-        foreach (static::$filters['after'] as $after)
+        foreach (self::$filters['after'] as $after)
         {
             $after();
         }
@@ -192,7 +266,7 @@ class Bi
      */
     public static function alert()
     {
-        foreach (static::$filters['error'] as $error)
+        foreach (self::$filters['error'] as $error)
         {
             $error();
         }
