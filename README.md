@@ -3,7 +3,6 @@
 
 require_once '../vendor/autoload.php';
 
-// Диспетчеризация
 Bi::dispatch([
     '/' => function () {
         echo 'Hello, World!';
@@ -12,36 +11,30 @@ Bi::dispatch([
 ```
 
 ```php
-// Добавление маршрута
+// add a new route
 Bi::bind($method, $pattern, $callable, $name = null);
 
-// Добавление маршрута для GET-запроса
-Bi::get($pattern, $callable, $name = null);
-
-// Добавление маршрута для POST-запроса
-Bi::post($pattern, $callable, $name = null);
-
-// Добавление маршрутов с префиксом к шаблону
+// add a group of routes
 Bi::prefix($prefix, Closure $callable);
 
-// Определение обработчика ошибок
+// define error handler
 Bi::error($callable);
 
-// Вызов обработчика ошибок
+// call error handler
 Bi::alert();
 
-// Получение сгенерированной ссылки основываясь на названном маршруте
+// generate a link from route with parameters
 Bi::generate($name, array $params = []);
 
-// Диспетчеризация
+// dispatching
 Bi::dispatch(array $routes = []);
 ```
 
-# Установка
+# Installing
 
-## Через Composer
+## Via Composer
 
-В файл `composer.json` записываем:
+Write in `composer.json`:
 
 ```json
 {
@@ -51,17 +44,17 @@ Bi::dispatch(array $routes = []);
 }
 ```
 
-Запускаем Composer: `composer install`. Подключаем автозагрузчик, например, в `index.php`:
+Run Composer: `composer install`. Including autoloader, for example, to `index.php`:
 
 ```php
 require_once '../vendor/autoload.php';
 ```
 
-# Настройки сервера
+# Server settings
 
 ## Apache
 
-В файл `.htaccess` записываем:
+Write in `.htaccess`:
 
 ```apacheconf
 AddDefaultCharset UTF-8
