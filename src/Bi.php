@@ -1,14 +1,14 @@
 <?php
 
 /**
- * Bi - простой маршрутизатор
+ * Bi
  *
  * @author Dmitry Fomin
  */
 class Bi
 {
     /**
-     * Маршруты
+     * Routes
      *
      * @var array
      */
@@ -19,28 +19,28 @@ class Bi
     ];
 
     /**
-     * Названные маршруты
+     * Named routes
      *
      * @var array
      */
     private static $namedRoutes = [];
 
     /**
-     * Текущий префикс маршрутов
+     * Current prefix
      *
      * @var string
      */
     private static $prefix;
 
     /**
-     * Обработчик ошибки
+     * Error handler
      *
      * @var Closure
      */
     private static $error;
 
     /**
-     * Добавление маршрута
+     * Add a route
      *
      * @param string $method
      * @param string $pattern
@@ -58,7 +58,7 @@ class Bi
     }
 
     /**
-     * Добавление маршрута для GET-запроса
+     * Add a route for GET method
      *
      * @param string $pattern
      * @param mixed  $callable
@@ -70,7 +70,7 @@ class Bi
     }
 
     /**
-     * Добавление маршрута для POST-запроса
+     * Add a route for POST method
      *
      * @param string $pattern
      * @param mixed  $callable
@@ -82,28 +82,28 @@ class Bi
     }
 
     /**
-     * Добавление маршрутов с префиксом к шаблону
+     * Add routes with a prefix to the pattern
      *
      * @param string  $prefix
      * @param Closure $callable
      */
     public static function prefix($prefix, Closure $callable)
     {
-        // Сохранение старого префикса
+        // Save a previous prefix
         $previous = self::$prefix;
 
-        // Добавление нового
+        // Add a new prefix
         self::$prefix .= $prefix;
 
-        // Добавление маршрутов
+        // Add routes
         $callable();
 
-        // Возврат к предыдушему префиксу
+        // Return to the previous prefix
         self::$prefix = $previous;
     }
 
     /**
-     * Определение обработчика ошибок
+     * Define error handler
      *
      * @param mixed $callable
      */
@@ -113,7 +113,7 @@ class Bi
     }
 
     /**
-     * Вызов обработчика ошибок
+     * Call error handler
      */
     public static function alert()
     {
@@ -121,10 +121,8 @@ class Bi
         {
             self::$error = function ()
             {
-                // Статус
                 http_response_code(404);
 
-                // Сообщение
                 echo '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>404 Not Found</title></head><body><h1>404 Not Found</h1><p>That page doesn\'t exist!</p></body></html>';
             };
         }
@@ -133,7 +131,7 @@ class Bi
     }
 
     /**
-     * Получение сгенерированной ссылки основываясь на названном маршруте
+     * Get a generated link from the route with parameters
      *
      * @param string $name
      * @param array  $params
@@ -149,13 +147,13 @@ class Bi
 
         $search = [];
 
-        // Подготовка регулярных выражений к подмене параметров
+        // Prepare regexp
         foreach ($params as $key => $value)
         {
             $search[] = '~@' . preg_quote($key, '~') . '(:([^/\(\)]*))\+?(?!\w)~';
         }
 
-        // Подменяем параметры
+        // Replace parameters
         $pattern = preg_replace($search, $params, self::$namedRoutes[$name]);
 
         // Remove remnants of unpopulated, trailing optional pattern segments, escaped special characters
@@ -163,7 +161,7 @@ class Bi
     }
 
     /**
-     * Диспетчеризация
+     * Dispatching
      *
      * @return mixed
      */
@@ -172,25 +170,23 @@ class Bi
         $method = $_SERVER['REQUEST_METHOD'];
         $uri    = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 
-        // Подбор маршрутов с подходящим методом запроса и их объединение
+        // Search suitable routes
         $routes = array_merge(self::$routes[$method], $routes);
 
-        // Поиск статичного маршрута
+        // Search static route
         if (array_key_exists($uri, $routes))
         {
             return self::call($routes[$uri]);
         }
 
-        // Поиск динамичного маршрута
+        // Search dinamic route
         foreach ($routes as $pattern => $callable)
         {
-            // Ключи в шаблоне
             $keys = [];
 
-            // Маски
             $pattern = str_replace(array(')','*'), array(')?','.*?'), $pattern);
 
-            // Замена параметров на регулярные выражения
+            // Replace parameters for regexp
             $pattern = preg_replace_callback('~@([\w]+)(:([^/\(\)]*))?~', function ($matches) use (&$keys)
             {
                 $keys[] = $matches[1];
@@ -203,12 +199,11 @@ class Bi
                 return "(?P<{$matches[1]}>[^/\?]+)";
             }, $pattern);
 
-            // Проверка
+            // Match
             if (preg_match("~^{$pattern}$~", $uri, $matches))
             {
                 $params = [];
 
-                // Занесение параметров в массив
                 foreach ($keys as $key)
                 {
                     if (array_key_exists($key, $matches))
@@ -217,17 +212,17 @@ class Bi
                     }
                 }
 
-                // Вызов действия
+                // Call action
                 return self::call($callable, $params);
             }
         }
 
-        // Ошибка
+        // Error!
         self::alert();
     }
 
     /**
-     * Вызов действия
+     * Call action
      *
      * @param mixed $callable
      * @param array $arguments
